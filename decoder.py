@@ -3,15 +3,19 @@ import torch.nn as nn
 from torch.nn import functional as F
 import tiktoken
 from v2 import MultiHeadAttention
-batch_size=32
-block_size=128
+from v2 import FeedForward
+from v2 import Block
+batch_size=64
+block_size=256
 max_iters=5000
+n_layer=6
+dropout=0.2
 eval_iterval=500
-learning_rate=1e-3
-
+learning_rate=3e-4
+num_heads=8
 tokenize=tiktoken.get_encoding("gpt2")
 vocab_size = tokenize.n_vocab
-n_embed = 256
+n_embed = 384
 device='cuda' if torch.cuda.is_available() else "cpu"
 eval_iters=100
 train_data=torch.tensor(tokenize.encode(train_csv),dtype=torch.long)
@@ -56,18 +60,23 @@ class BidiagramLanguageEmbedding(nn.Module):
         self.token_embedding_table = nn.Embedding(vocab_size, n_embed)
         # to go from token_embedding to logit we need linear layer
         self.lm_head=nn.Linear(n_embed,vocab_size)
-        self.postion_embedding_table=nn.Embedding(block_size,n_embed)
-        self.sa_head=MultiHeadAttention(4,n_embed//4)
+        self.postional_embedding_table=nn.Embedding(block_size,n_embed)
+        self.ln_f=nn.LayerNorm(n_embed)
+        self.blocks=nn.Sequential(
+           *[Block(n_embed,num_heads=num_heads) for _ in range(n_layer)]
+        )
     def forward(self, idx, targets=None):
         B,T=idx.shape
 
         tok_emb = self.token_embedding_table(idx) 
         pos_emb=self.postional_embedding_table(torch.arrage(T,device=device)) 
         x= tok_emb+pos_emb     # (B, T, n_embed)
-        logits = self.lm_head(tok_emb)                  # (B, T, vocab_size)
-
-        loss = None
-        if targets is not None:
+        x=self.blocks(x)
+        x=self.ln_f(x)
+        logits = self.lm_head(x)                  # (B, T, vocab_size)
+        if targets is None:
+          loss = None
+        else :
             # Flatten for cross-entropy
             B, T, C = logits.shape
             logits_flat = logits.view(B*T, C)
