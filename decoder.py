@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 import tiktoken
-from v2 import Head
+from v2 import MultiHeadAttention
 batch_size=32
 block_size=128
 max_iters=5000
@@ -57,7 +57,7 @@ class BidiagramLanguageEmbedding(nn.Module):
         # to go from token_embedding to logit we need linear layer
         self.lm_head=nn.Linear(n_embed,vocab_size)
         self.postion_embedding_table=nn.Embedding(block_size,n_embed)
-        self.sa_head=Head(n_embed)
+        self.sa_head=MultiHeadAttention(4,n_embed//4)
     def forward(self, idx, targets=None):
         B,T=idx.shape
 
