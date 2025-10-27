@@ -1,4 +1,4 @@
-
+# THE CORE WISDOM I GET FROM DECODER ONLY TRANSFORMER
     1 Attention is a communication mechanism. Can be seen as nodes in a directed graph looking at each other
     and aggregating information with a weighted sum from all nodes that point to them, with data-dependent weights.
     2 There is no notion of space. Attention simply acts over a set of vectors. 
@@ -14,4 +14,5 @@
     6 "Scaled" attention additional divides wei by 1/sqrt(head_size). 
     This makes it so when input Q,K are unit variance, wei will be unit variance too and Softmax will stay diffuse 
     and not saturate too much. Illustration below
+
 
