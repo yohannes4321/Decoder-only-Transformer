@@ -1,62 +1,60 @@
 import torch
-import tiktoken
-# --- Assume you already have your model `m` and decode function ---
-# from decoder import m, decode
-from decoder import encode,decode
-def generate_from_prompt(prompt: str, max_new_tokens: int = 200, temperature: float = 0.7, device: str = None):
+from decoder import encode, decode
+
+def generate_from_prompt(prompt: str, max_new_tokens: int = 200, temperature: float = 0.7, top_k: int = 50, device: str = None):
     """
-    Generate text given a prompt string.
+    Generate text given a prompt string using Top-k sampling.
 
     Args:
-        prompt (str): The text prompt to start generation.
+        prompt (str): Input text prompt.
         max_new_tokens (int): Maximum number of tokens to generate.
-        temperature (float): Sampling temperature (controls randomness).
-        device (str): 'cuda' or 'cpu'. If None, auto-detects GPU.
+        temperature (float): Sampling temperature (higher = more random).
+        top_k (int): Keep only the top k tokens for sampling.
+        device (str): 'cuda' or 'cpu'.
 
     Returns:
-        str: The generated text including the prompt.
+        str: Generated text including the prompt.
     """
-    
-    # 1️⃣ Determine the device
     if device is None:
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    m=torch.load("decoder.pth")
 
-    # 2️⃣ Put model on the device
+    # Load model
+    m = torch.load("decoder.pth")
     m.to(device)
-    m.eval()  # Set the model to evaluation mode (disable dropout, etc.)
+    m.eval()
 
-    # 3️⃣ Encode the prompt into token IDs
-    # Here we assume your model has a tokenizer or encode function
+    # Encode prompt
     prompt_ids = torch.tensor([encode(prompt)], dtype=torch.long, device=device)
-    input_tensor = prompt_ids  # Shape: [1, prompt_length]
+    input_tensor = prompt_ids
 
-    # 4️⃣ Generation loop
+    # Generation loop
     for _ in range(max_new_tokens):
-        # 4a️⃣ Keep only the last `block_size` tokens if input is too long
         if input_tensor.size(1) > m.config.block_size:
             input_tensor = input_tensor[:, -m.config.block_size:]
 
-        # 4b️⃣ Forward pass: get logits
-        # Shape of logits: [batch_size, sequence_length, vocab_size]
-        logits = m(input_tensor)
-        logits = logits[:, -1, :] / temperature  # Take last token's logits and scale by temperature
+        with torch.no_grad():  # disable gradients
+            logits = m(input_tensor)  # [1, seq_len, vocab_size]
+            logits = logits[:, -1, :] / temperature
 
-        # 4c️⃣ Convert logits to probabilities
-        probs = torch.softmax(logits, dim=-1)
+            # --- Top-k filtering ---
+            if top_k is not None:
+                topk_vals, topk_idx = torch.topk(logits, top_k)
+                filtered_logits = torch.full_like(logits, float('-inf'))  # mask everything
+                filtered_logits[0, topk_idx[0]] = topk_vals[0]            # keep only top-k
+                logits = filtered_logits
 
-        # 4d️⃣ Sample the next token
-        next_token = torch.multinomial(probs, num_samples=1)
+            # Convert to probabilities
+            probs = torch.softmax(logits, dim=-1)
 
-        # 4e️⃣ Append sampled token to the input tensor
+            # Sample next token
+            next_token = torch.multinomial(probs, num_samples=1)
+
+        # Append token
         input_tensor = torch.cat((input_tensor, next_token), dim=1)
 
-        # 4f️⃣ Stop generation if EOS token is produced
+        # Stop at EOS
         if next_token.item() == m.config.eos_token_id:
             break
 
-    # 5️⃣ Convert final token IDs back to text
     output_ids = input_tensor[0].tolist()
-    generated_text = decode(output_ids)
-
-    return generated_text
+    return decode(output_ids)
