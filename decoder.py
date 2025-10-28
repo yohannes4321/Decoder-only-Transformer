@@ -4,16 +4,16 @@ from torch.nn import functional as F
 import tiktoken
 from visualize import plot_metrics
 # hyperparameters
-batch_size = 64 # how many independent sequences will we process in parallel?
-block_size = 256 # what is the maximum context length for predictions?
-max_iters = 5000
-eval_interval = 500
+batch_size = 4 # how many independent sequences will we process in parallel?
+block_size = 8 # what is the maximum context length for predictions?
+max_iters = 1
+eval_interval = 5
 learning_rate = 3e-4
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-eval_iters = 200
-n_embd = 384
-n_head = 6
-n_layer = 6
+eval_iters = 2
+n_embd = 8
+n_head = 1
+n_layer = 1
 dropout = 0.2
 
 
@@ -184,7 +184,7 @@ class GPTLanguageModel(nn.Module):
 
         # idx and targets are both (B,T) tensor of integers
         tok_emb = self.token_embedding_table(idx) # (B,T,C)
-        pos_emb = self.position_embedding_table(torch.arange(T, device=device)) # (T,C)
+        pos_emb = self.position_embedding_table(torch.arange(T, device=idx.device)) # (T,C)
         x = tok_emb + pos_emb # (B,T,C)
         x = self.blocks(x) # (B,T,C)
         x = self.ln_f(x) # (B,T,C)
@@ -217,13 +217,6 @@ class GPTLanguageModel(nn.Module):
             idx = torch.cat((idx, idx_next), dim=1) # (B, T+1)
         return idx
 
-model = GPTLanguageModel()
-m = model.to(device)
-# print the number of parameters in the model
-print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
-
-# create a PyTorch optimizer
-optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
 # for iter in range(max_iters):
 
@@ -243,7 +236,7 @@ optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
 
 # save the model
-def train_model(model, optimizer, max_epochs, eval_interval=100):
+def train_model(model, optimizer, max_epochs, eval_interval=100, device='cpu'):
     train_losses = []
     val_losses = []
 
@@ -267,7 +260,7 @@ def train_model(model, optimizer, max_epochs, eval_interval=100):
         avg_train_loss = total_train_loss / num_train_batches
         print(f"Epoch {epoch+1}: avg train loss = {avg_train_loss:.4f}")
 
-        # ---- Validation after epoch ----
+        # ---- Validation ----
         model.eval()
         total_val_loss = 0
         num_val_batches = 0
@@ -288,9 +281,23 @@ def train_model(model, optimizer, max_epochs, eval_interval=100):
         val_losses.append(avg_val_loss)
 
         # ---- Plot metrics ----
-        plot_metrics(train_losses, val_losses) 
-torch.save(model,"decoder.pth")
+        plot_metrics(train_losses, val_losses)
 
-train_model(model, optimizer, max_iters, eval_interval=eval_interval)
+    # ---- Save model after training ----
+    torch.save(model, "decoder.pth")
+
+    print("\n✅ Training complete! Model saved as 'decoder.pth'.")
+    return train_losses, val_losses
+
+if __name__ == "__main__":
+    model = GPTLanguageModel()
+    m = model.to(device)
+    print(f"Model device: {next(model.parameters()).device}")
+    print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
+
+    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+
+    # ✅ Correct argument names
+    train_model(model, optimizer, max_epochs=max_iters, eval_interval=100, device=device)
 
 
