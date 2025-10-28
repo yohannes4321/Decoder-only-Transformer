@@ -15,32 +15,43 @@ n_head = 6
 n_layer = 6
 dropout = 0.2
 
-enc = tiktoken.get_encoding("o200k_base")
+
 # ------------
 
 torch.manual_seed(1337)
 
-with open('/Data/train.csv', 'r', encoding='utf-8') as f:
-    train_csv= f.read()
-with open('/Data/validation.csv', 'r', encoding='utf-8') as f:
-    val_csv= f.read()
-with open('/Data/test.csv', 'r', encoding='utf-8') as f:
-    test_csv= f.read()
+import os
 
-vocab_size = enc.n_voc
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # folder of the script
+DATA_DIR = os.path.join(BASE_DIR, 'Data')
 
-# # create a mapping from characters to integers
-# stoi = { ch:i for i,ch in enumerate(chars) }
-# itos = { i:ch for i,ch in enumerate(chars) }
-# encode = lambda s: [stoi[c] for c in s] # encoder: take a string, output a list of integers
-# decode = lambda l: ''.join([itos[i] for i in l]) # decoder: take a list of integers, output a string
+with open(os.path.join(DATA_DIR, 'train.csv'), 'r', encoding='utf-8') as f:
+    train_csv = f.read()
+with open(os.path.join(DATA_DIR, 'validation.csv'), 'r', encoding='utf-8') as f:
+    val_csv = f.read()
+with open(os.path.join(DATA_DIR, 'test.csv'), 'r', encoding='utf-8') as f:
+    test_csv = f.read()
+
+chars = sorted(list(set(train_csv)))
+vocab_size = len(chars)
+
+# create a mapping from characters to integers
+stoi = { ch:i for i,ch in enumerate(chars) }
+itos = { i:ch for i,ch in enumerate(chars) }
+encode = lambda s: [stoi[c] for c in s] # encoder: take a string, output a list of integers
+decode = lambda l: ''.join([itos[i] for i in l]) # decoder: take a list of integers, output a string
 
 # # Train and test splits
 # data = torch.tensor(enc.encode(text), dtype=torch.long)
 # n = int(0.9*len(data)) # first 90% will be train, rest val
-train_data = enc.encode(train_csv,dtype=torch.long)
-val_data = enc.encode(val_csv,dtype=torch.long)
-test_data=enc.encode(test_csv,dtype=torch.long)
+train_ids = encode(train_csv)   # returns list[int]
+val_ids   = encode(val_csv)
+test_ids  = encode(test_csv)
+
+# 2️⃣ Convert to PyTorch tensor
+train_data = torch.tensor(train_ids, dtype=torch.long)
+val_data   = torch.tensor(val_ids, dtype=torch.long)
+test_data  = torch.tensor(test_ids, dtype=torch.long)
 
 # data loading
 def get_batch(split):

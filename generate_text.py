@@ -2,7 +2,7 @@ import torch
 import tiktoken
 # --- Assume you already have your model `m` and decode function ---
 # from decoder import m, decode
-
+from decoder import encode,decode
 def generate_from_prompt(prompt: str, max_new_tokens: int = 200, temperature: float = 0.7, device: str = None):
     """
     Generate text given a prompt string.
@@ -16,7 +16,7 @@ def generate_from_prompt(prompt: str, max_new_tokens: int = 200, temperature: fl
     Returns:
         str: The generated text including the prompt.
     """
-    enc = tiktoken.get_encoding("o200k_base")
+    
     # 1️⃣ Determine the device
     if device is None:
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -28,7 +28,7 @@ def generate_from_prompt(prompt: str, max_new_tokens: int = 200, temperature: fl
 
     # 3️⃣ Encode the prompt into token IDs
     # Here we assume your model has a tokenizer or encode function
-    prompt_ids = torch.tensor([enc.encode(prompt)], dtype=torch.long, device=device)
+    prompt_ids = torch.tensor([encode(prompt)], dtype=torch.long, device=device)
     input_tensor = prompt_ids  # Shape: [1, prompt_length]
 
     # 4️⃣ Generation loop
@@ -57,6 +57,6 @@ def generate_from_prompt(prompt: str, max_new_tokens: int = 200, temperature: fl
 
     # 5️⃣ Convert final token IDs back to text
     output_ids = input_tensor[0].tolist()
-    generated_text = enc.decode(output_ids)
+    generated_text = decode(output_ids)
 
     return generated_text
