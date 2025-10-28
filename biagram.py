@@ -14,9 +14,15 @@ eval_iters = 200
 # ------------
 
 torch.manual_seed(1337)
-train="Data/train.csv"
-val_data="Data/validation.csv"
-test_data="Data/test.csv"
+import os
+
+# Get the directory of the current script
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+train = os.path.join(BASE_DIR, "Data/train.csv")
+val_data = os.path.join(BASE_DIR, "Data/validation.csv")
+test_data = os.path.join(BASE_DIR, "Data/test.csv")
+
 with open(train, 'r', encoding='utf-8') as f:
     train_data = f.read()
 with open(val_data, 'r', encoding='utf-8') as f:
@@ -24,6 +30,7 @@ with open(val_data, 'r', encoding='utf-8') as f:
 with open(test_data, 'r', encoding='utf-8') as f:
     test_data = f.read()
 
+print(train_data)
 enc=tiktoken.get_encoding("gpt2")
 
 # here are all the unique characters that occur in this text
