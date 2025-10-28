@@ -20,13 +20,14 @@ enc = tiktoken.get_encoding("o200k_base")
 
 torch.manual_seed(1337)
 
-# wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
-with open('/content/ng-video-lecture/input.txt', 'r', encoding='utf-8') as f:
-    text = f.read()
+with open('/Data/train.csv', 'r', encoding='utf-8') as f:
+    train_csv= f.read()
+with open('/Data/validation.csv', 'r', encoding='utf-8') as f:
+    val_csv= f.read()
+with open('/Data/test.csv', 'r', encoding='utf-8') as f:
+    test_csv= f.read()
 
-# here are all the unique characters that occur in this text
-chars = sorted(list(set(text)))
-vocab_size = len(chars)
+vocab_size = enc.n_voc
 
 # # create a mapping from characters to integers
 # stoi = { ch:i for i,ch in enumerate(chars) }
@@ -34,11 +35,12 @@ vocab_size = len(chars)
 # encode = lambda s: [stoi[c] for c in s] # encoder: take a string, output a list of integers
 # decode = lambda l: ''.join([itos[i] for i in l]) # decoder: take a list of integers, output a string
 
-# Train and test splits
-data = torch.tensor(enc.encode(text), dtype=torch.long)
-n = int(0.9*len(data)) # first 90% will be train, rest val
-train_data = data[:n]
-val_data = data[n:]
+# # Train and test splits
+# data = torch.tensor(enc.encode(text), dtype=torch.long)
+# n = int(0.9*len(data)) # first 90% will be train, rest val
+train_data = enc.encode(train_csv,dtype=torch.long)
+val_data = enc.encode(val_csv,dtype=torch.long)
+test_data=enc.encode(test_csv,dtype=torch.long)
 
 # data loading
 def get_batch(split):
