@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-
+import tiktoken
 # hyperparameters
 batch_size = 64 # how many independent sequences will we process in parallel?
 block_size = 256 # what is the maximum context length for predictions?
@@ -14,6 +14,8 @@ n_embd = 384
 n_head = 6
 n_layer = 6
 dropout = 0.2
+
+enc = tiktoken.get_encoding("o200k_base")
 # ------------
 
 torch.manual_seed(1337)
@@ -25,6 +27,7 @@ with open('/content/ng-video-lecture/input.txt', 'r', encoding='utf-8') as f:
 # here are all the unique characters that occur in this text
 chars = sorted(list(set(text)))
 vocab_size = len(chars)
+
 # create a mapping from characters to integers
 stoi = { ch:i for i,ch in enumerate(chars) }
 itos = { i:ch for i,ch in enumerate(chars) }
@@ -32,7 +35,7 @@ encode = lambda s: [stoi[c] for c in s] # encoder: take a string, output a list 
 decode = lambda l: ''.join([itos[i] for i in l]) # decoder: take a list of integers, output a string
 
 # Train and test splits
-data = torch.tensor(encode(text), dtype=torch.long)
+data = torch.tensor(enc.encode(text), dtype=torch.long)
 n = int(0.9*len(data)) # first 90% will be train, rest val
 train_data = data[:n]
 val_data = data[n:]
@@ -219,7 +222,7 @@ for iter in range(max_iters):
     loss.backward()
     optimizer.step()
 
-# generate from the model
-context = torch.zeros((1, 1), dtype=torch.long, device=device)
-print(decode(m.generate(context, max_new_tokens=500)[0].tolist()))
-#open('more.txt', 'w').write(decode(m.generate(context, max_new_tokens=10000)[0].tolist()))
+# save the model 
+torch.save(model,"decoder.pth")
+
+
