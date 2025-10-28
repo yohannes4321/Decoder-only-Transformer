@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 import tiktoken
+from visualize import plot_metrics
 # hyperparameters
 batch_size = 64 # how many independent sequences will we process in parallel?
 block_size = 256 # what is the maximum context length for predictions?
@@ -224,23 +225,72 @@ print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
 # create a PyTorch optimizer
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
-for iter in range(max_iters):
+# for iter in range(max_iters):
 
-    # every once in a while evaluate the loss on train and val sets
-    if iter % eval_interval == 0 or iter == max_iters - 1:
-        losses = estimate_loss()
-        print(f"step {iter}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+#     # every once in a while evaluate the loss on train and val sets
+#     if iter % eval_interval == 0 or iter == max_iters - 1:
+#         losses = estimate_loss()
+#         print(f"step {iter}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
 
-    # sample a batch of data
-    xb, yb = get_batch('train')
+#     # sample a batch of data
+#     xb, yb = get_batch('train')
 
-    # evaluate the loss
-    logits, loss = model(xb, yb)
-    optimizer.zero_grad(set_to_none=True)
-    loss.backward()
-    optimizer.step()
+#     # evaluate the loss
+#     logits, loss = model(xb, yb)
+#     optimizer.zero_grad(set_to_none=True)
+#     loss.backward()
+#     optimizer.step()
 
-# save the model 
+
+# save the model
+def train_model(model, optimizer, max_epochs, eval_interval=100):
+    train_losses = []
+    val_losses = []
+
+    for epoch in range(max_epochs):
+        model.train()
+        total_train_loss = 0
+        num_train_batches = 0
+
+        for iter in range(eval_interval):  # batches per epoch
+            xb, yb = get_batch('train')
+            xb, yb = xb.to(device), yb.to(device)
+
+            logits, loss = model(xb, yb)
+            optimizer.zero_grad(set_to_none=True)
+            loss.backward()
+            optimizer.step()
+
+            total_train_loss += loss.item()
+            num_train_batches += 1
+
+        avg_train_loss = total_train_loss / num_train_batches
+        print(f"Epoch {epoch+1}: avg train loss = {avg_train_loss:.4f}")
+
+        # ---- Validation after epoch ----
+        model.eval()
+        total_val_loss = 0
+        num_val_batches = 0
+
+        with torch.no_grad():
+            for _ in range(20):  # evaluate on 20 random validation batches
+                xb, yb = get_batch('val')
+                xb, yb = xb.to(device), yb.to(device)
+                logits, loss = model(xb, yb)
+                total_val_loss += loss.item()
+                num_val_batches += 1
+
+        avg_val_loss = total_val_loss / num_val_batches
+        print(f"Epoch {epoch+1}: avg val loss = {avg_val_loss:.4f}")
+
+        # ---- Store metrics ----
+        train_losses.append(avg_train_loss)
+        val_losses.append(avg_val_loss)
+
+        # ---- Plot metrics ----
+        plot_metrics(train_losses, val_losses) 
 torch.save(model,"decoder.pth")
+
+train_model(model, optimizer, max_iters, eval_interval=eval_interval)
 
 
