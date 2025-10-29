@@ -4,16 +4,16 @@ from torch.nn import functional as F
 import tiktoken
 from visualize import plot_metrics
 # hyperparameters
-batch_size = 4 # how many independent sequences will we process in parallel?
-block_size = 8 # what is the maximum context length for predictions?
-max_iters = 1
-eval_interval = 5
+batch_size = 64 # how many independent sequences will we process in parallel?
+block_size = 256 # what is the maximum context length for predictions?
+max_iters = 15
+eval_interval = 3
 learning_rate = 3e-4
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-eval_iters = 2
-n_embd = 8
-n_head = 1
-n_layer = 1
+eval_iters = 10
+n_embd = 384
+n_head = 6
+n_layer = 6
 dropout = 0.2
 
 
