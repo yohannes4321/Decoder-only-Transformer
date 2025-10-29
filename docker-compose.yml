@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi-gpu-app
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - ./Data:/app/Data
+      - ./assets:/app/assets
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CUDA_VISIBLE_DEVICES=0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: >
+      uvicorn app:app
+      --host 0.0.0.0
+      --port 8000
+      --workers 1
