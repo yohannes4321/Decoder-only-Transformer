@@ -35,9 +35,4 @@ def generate_from_prompt(prompt: str, max_new_tokens=200, temperature=0.7, top_k
 
     return decode(input_tensor[0].tolist())
 
-if __name__ == "__main__":
-    prompt = """Continue the scene below in Shakespearean style...
-First Citizen: Before we proceed any further, hear me speak.
-All: Speak, speak."""
-    text = generate_from_prompt(prompt)
-    print(text)
+
