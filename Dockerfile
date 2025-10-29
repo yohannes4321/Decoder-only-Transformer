@@ -19,5 +19,4 @@ RUN mkdir -p /app/Data /app/assets
 # Expose the port uvicorn will use
 EXPOSE 8000
 
-# Default command to run the FastAPI app with uvicorn
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+CMD ["sh", "-c", "uvicorn decoder_only_transformer.app:app --host 0.0.0.0 --port $PORT"]
