@@ -81,6 +81,6 @@ def eval_endpoint(request: EvalRequest):
 
 # This is only for local testing, Render uses the Start Command
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))  
-    # CHANGE THIS LINE
+    port=int(os.environ.get("PORT",8080))
+
     uvicorn.run("app:app", host="0.0.0.0", port=port, log_level="info")
