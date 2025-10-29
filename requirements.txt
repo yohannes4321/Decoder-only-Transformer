@@ -3,3 +3,6 @@ torch==2.5.0
 
 fastapi
 uvicorn 
+
+matplotlib
+pytest
