@@ -4,8 +4,8 @@ from torch.nn import functional as F
 import tiktoken
 from visualize import plot_metrics
 # hyperparameters
-batch_size = 64 # how many independent sequences will we process in parallel?
-block_size = 256 # what is the maximum context length for predictions?
+batch_size = 64 
+block_size = 256
 max_iters = 15
 eval_interval = 3
 learning_rate = 3e-4
@@ -17,13 +17,13 @@ n_layer = 6
 dropout = 0.2
 
 
-# ------------
+
 
 torch.manual_seed(1337)
 
 import os
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # folder of the script
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  
 DATA_DIR = os.path.join(BASE_DIR, 'Data')
 
 with open(os.path.join(DATA_DIR, 'train.csv'), 'r', encoding='utf-8') as f:
@@ -36,27 +36,25 @@ with open(os.path.join(DATA_DIR, 'test.csv'), 'r', encoding='utf-8') as f:
 chars = sorted(list(set(train_csv)))
 vocab_size = len(chars)
 
-# create a mapping from characters to integers
+
 stoi = { ch:i for i,ch in enumerate(chars) }
 itos = { i:ch for i,ch in enumerate(chars) }
 encode = lambda s: [stoi[c] for c in s] # encoder: take a string, output a list of integers
 decode = lambda l: ''.join([itos[i] for i in l]) # decoder: take a list of integers, output a string
 
-# # Train and test splits
-# data = torch.tensor(enc.encode(text), dtype=torch.long)
-# n = int(0.9*len(data)) # first 90% will be train, rest val
+
 train_ids = encode(train_csv)   # returns list[int]
 val_ids   = encode(val_csv)
 test_ids  = encode(test_csv)
 
-# 2️⃣ Convert to PyTorch tensor
+
 train_data = torch.tensor(train_ids, dtype=torch.long)
 val_data   = torch.tensor(val_ids, dtype=torch.long)
 test_data  = torch.tensor(test_ids, dtype=torch.long)
 
 # data loading
 def get_batch(split):
-    # generate a small batch of data of inputs x and targets y
+    
     if split=="train":
         data=train_data
     elif split=="val":
@@ -101,14 +99,14 @@ class Head(nn.Module):
         B,T,C = x.shape
         k = self.key(x)   # (B,T,hs)
         q = self.query(x) # (B,T,hs)
-        # compute attention scores ("affinities")
+        # compute attention scores 
         wei = q @ k.transpose(-2,-1) * k.shape[-1]**-0.5 # (B, T, hs) @ (B, hs, T) -> (B, T, T)
         wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf')) # (B, T, T)
         wei = F.softmax(wei, dim=-1) # (B, T, T)
         wei = self.dropout(wei)
         # perform the weighted aggregation of the values
         v = self.value(x) # (B,T,hs)
-        out = wei @ v # (B, T, T) @ (B, T, hs) -> (B, T, hs)
+        out = wei @ v 
         return out
 
 class MultiHeadAttention(nn.Module):
@@ -144,7 +142,7 @@ class Block(nn.Module):
     """ Transformer block: communication followed by computation """
 
     def __init__(self, n_embd, n_head):
-        # n_embd: embedding dimension, n_head: the number of heads we'd like
+     
         super().__init__()
         head_size = n_embd // n_head
         self.sa = MultiHeadAttention(n_head, head_size)
@@ -161,14 +159,14 @@ class GPTLanguageModel(nn.Module):
 
     def __init__(self):
         super().__init__()
-        # each token directly reads off the logits for the next token from a lookup table
+   
         self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
         self.position_embedding_table = nn.Embedding(block_size, n_embd)
         self.blocks = nn.Sequential(*[Block(n_embd, n_head=n_head) for _ in range(n_layer)])
         self.ln_f = nn.LayerNorm(n_embd) # final layer norm
         self.lm_head = nn.Linear(n_embd, vocab_size)
 
-        # better init, not covered in the original GPT video, but important, will cover in followup video
+       
         self.apply(self._init_weights)
 
     def _init_weights(self, module):
@@ -201,7 +199,7 @@ class GPTLanguageModel(nn.Module):
         return logits, loss
 
     def generate(self, idx, max_new_tokens):
-        # idx is (B, T) array of indices in the current context
+        
         for _ in range(max_new_tokens):
             # crop idx to the last block_size tokens
             idx_cond = idx[:, -block_size:]
@@ -286,7 +284,7 @@ def train_model(model, optimizer, max_epochs, eval_interval=100, device='cpu'):
     # ---- Save model after training ----
     torch.save(model, "decoder.pth")
 
-    print("\n✅ Training complete! Model saved as 'decoder.pth'.")
+    print("\n Training complete! Model saved as 'decoder.pth'.")
     return train_losses, val_losses
 
 if __name__ == "__main__":
@@ -297,7 +295,7 @@ if __name__ == "__main__":
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
-    # ✅ Correct argument names
+
     train_model(model, optimizer, max_epochs=max_iters, eval_interval=100, device=device)
 
 

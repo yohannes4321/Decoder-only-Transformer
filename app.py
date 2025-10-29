@@ -6,9 +6,7 @@ from eval import evaluate
 import os
 import uvicorn
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))  # default 8000 for local dev
-    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)
+
 
 app = FastAPI()
 
@@ -39,5 +37,5 @@ def eval_endpoint(request: EvalRequest):
     return {"avg_loss": avg_loss, "avg_perplexity": avg_perplexity}
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))  # Render sets PORT automatically
+    port = int(os.environ.get("PORT", 8000))  
     uvicorn.run("decoder_only_transformer.app:app", host="0.0.0.0", port=port)
