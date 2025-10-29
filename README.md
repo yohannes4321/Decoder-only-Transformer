@@ -152,7 +152,33 @@ Request Body:
 JSON
 
 {
-  "prompt": "Hello, my name is",
+  "prompt": "First Citizen:
+Before we proceed any further, hear me speak.
+
+All:
+Speak, speak.
+
+First Citizen:
+You are all resolved rather to die than to famish?
+
+All:
+Resolved. resolved.
+
+First Citizen:
+First, you know Caius Marcius is chief enemy to the people.
+
+All:
+We know't, we know't.
+
+First Citizen:
+Let us kill him, and we'll have corn at our own price.
+Is't a verdict?
+
+All:
+No more talking on't; let it be done: away, away!
+
+Second Citizen:
+One word, good citizens.",
   "temperature": 0.7,
  
 }
@@ -162,7 +188,33 @@ Bash
 
 curl -X POST "[http://127.0.0.1:8000/generate_text](http://127.0.0.1:8000/generate_text)" \
      -H "Content-Type: application/json" \
-     -d '{"prompt": "Hello, my name is", "max_new_tokens": 50}'
+     -d '{"prompt": "First Citizen:
+Before we proceed any further, hear me speak.
+
+All:
+Speak, speak.
+
+First Citizen:
+You are all resolved rather to die than to famish?
+
+All:
+Resolved. resolved.
+
+First Citizen:
+First, you know Caius Marcius is chief enemy to the people.
+
+All:
+We know't, we know't.
+
+First Citizen:
+Let us kill him, and we'll have corn at our own price.
+Is't a verdict?
+
+All:
+No more talking on't; let it be done: away, away!
+
+Second Citizen:
+One word, good citizens."}'
 Response:
 
 JSON
