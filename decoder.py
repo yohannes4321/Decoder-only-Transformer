@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-import tiktoken
+
 from visualize import plot_metrics
 # hyperparameters
 batch_size = 64 
