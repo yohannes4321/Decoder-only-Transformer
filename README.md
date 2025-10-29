@@ -37,6 +37,14 @@ Here is an overview of the key files in this project:
 
 ---
 
+![Training and Validation Loss](assets/Screenshot 2025-10-22 211107.png)
+![Training and Validation Loss](assets/Screenshot 2025-10-25 145906.png)
+![Training and Validation Loss](assets/Screenshot 2025-10-25 150436.png)
+![Training and Validation Loss](assets/Screenshot 2025-10-25 151243.png)
+![Training and Validation Loss](assets/Screenshot 2025-10-29 114936.png)
+
+
+
 ## 🚀 Getting Started (Local Setup)
 
 Follow these steps to set up and run the project on your local machine using a virtual environment.
