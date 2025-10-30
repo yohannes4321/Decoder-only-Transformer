@@ -14,7 +14,7 @@ app = FastAPI()
 # --- CORS Configuration (CRITICAL FOR CROSS-DOMAIN COMMUNICATION) ---
 origins = [
     # The domain of your frontend
-    "https://chatgpt-3t3n.onrender.com", 
+    "https://gpt-ui-feature-integ-cy14.bolt.host", 
     # Add other origins if needed (e.g., development localhost)
     # "http://localhost:3000", 
 ]
@@ -80,7 +80,3 @@ def eval_endpoint(request: EvalRequest):
         return {"detail": f"Evaluation failed: {e}"}, 500
 
 # This is only for local testing, Render uses the Start Command
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000)) 
-    # CHANGE THIS LINE
-    uvicorn.run("app:app", host="0.0.0.0", port=port, log_level="info")
