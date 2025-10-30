@@ -15,12 +15,44 @@ import math
 # ====================================================================
 
 # NOTE: These hyperparameters MUST match the values used when the model was trained and saved.
-batch_size = 2
-block_size = 3 
-n_embd = 8
-n_head = 1
-n_layer = 1
+batch_size = 64
+block_size = 256
+n_embd = 384
+n_head = 6
+n_layer = 6
 dropout = 0.2
+
+
+
+
+torch.manual_seed(1337)
+
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  
+DATA_DIR = os.path.join(BASE_DIR, 'Data')
+
+with open(os.path.join(DATA_DIR, 'train.csv'), 'r', encoding='utf-8') as f:
+    train_csv = f.read()
+with open(os.path.join(DATA_DIR, 'validation.csv'), 'r', encoding='utf-8') as f:
+    val_csv = f.read()
+with open(os.path.join(DATA_DIR, 'test.csv'), 'r', encoding='utf-8') as f:
+    test_csv = f.read()
+
+chars = sorted(list(set(train_csv)))
+vocab_size = len(chars)
+
+
+stoi = { ch:i for i,ch in enumerate(chars) }
+itos = { i:ch for i,ch in enumerate(chars) }
+encode = lambda s: [stoi[c] for c in s] # encoder: take a string, output a list of integers
+decode = lambda l: ''.join([itos[i] for i in l]) # decoder: take a list of integers, output a string
+
+
+train_ids = encode(train_csv)   # returns list[int]
+val_ids   = encode(val_csv)
+test_ids  = encode(test_csv)
+
 
 # CRITICAL FIX: Set the device to CPU explicitly for deployment
 device = torch.device('cpu') 
@@ -244,9 +276,51 @@ def generate_from_prompt(prompt: str, max_new_tokens=200, temperature=0.7, top_k
     )
 
     return decode(output_tensor[0].tolist())
+def get_batch(split):
+    
+    if split=="train":
+        data=train_data
+    elif split=="val":
+        data=val_data
+    elif split=="test":
+        data=test_data
+    ix = torch.randint(len(data) - block_size, (batch_size,))
+    x = torch.stack([data[i:i+block_size] for i in ix])
+    y = torch.stack([data[i+1:i+block_size+1] for i in ix])
+    x, y = x.to(device), y.to(device)
+    return x, y
 
+def evaluate(split="test", num_batches=64):
+    """Calculates average loss and perplexity over a number of batches."""
+    global m
+    if m is None:
+        return {"loss": float("inf"), "perplexity": float("inf"), "error": "Model not initialized."}
+
+    m.eval()
+    total_loss = 0.0
+
+    # Ensure num_batches is positive to avoid division by zero
+    num_batches = max(1, num_batches) 
+
+    with torch.no_grad():
+        for _ in range(num_batches):
+            # Get a batch of input (x) and targets (y)
+            x, y = get_batch(split) 
+            
+            # The model's forward method returns (logits, loss) when targets (y) are provided.
+            _, loss = m(x, y)
+            total_loss += loss.item()
+
+    avg_loss = total_loss / num_batches
+    avg_perplexity = math.exp(avg_loss) if avg_loss < 100 else float("inf")
+    
+    return {"loss": avg_loss, "perplexity": avg_perplexity}
 # ====================================================================
 # V. FASTAPI APPLICATION SETUP (From app.py)
+# ====================================================================
+
+# ====================================================================
+# V. FASTAPI APPLICATION SETUP 
 # ====================================================================
 
 app = FastAPI(title="GPT Language Model API")
@@ -260,15 +334,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- Request Models ---
+
 class GenerationRequest(BaseModel):
     prompt: str
     max_new_tokens: int = 100
     temperature: float = 0.8
     top_k: int = 50
 
+class EvaluationRequest(BaseModel):
+    split: str = "test"
+    num_batches: int = 100
+
+
+# --- Endpoints ---
+
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to the GPT Language Model API! Use the /generate endpoint."}
+    return {"message": "Welcome to the GPT Language Model API! Endpoints: /generate (POST), /evaluate (POST)."}
 
 @app.post("/generate")
 def generate_text_endpoint(request: GenerationRequest):
@@ -281,8 +364,27 @@ def generate_text_endpoint(request: GenerationRequest):
         )
         return {"input_prompt": request.prompt, "generated_text": generated_text}
     except Exception as e:
-        # Catch and report errors during generation
         return {"error": str(e), "detail": "An error occurred during text generation."}
+
+# --- New Evaluation Endpoint ---
+@app.post("/evaluate")
+def evaluate_endpoint(request: EvaluationRequest):
+    try:
+        evaluation_results = evaluate(
+            "test",
+            64
+        )
+        # Check for model not initialized error from the evaluate function itself
+        if "error" in evaluation_results:
+             return {"error": evaluation_results["error"], "detail": "Evaluation failed before starting."}
+
+        return {
+            "split": "test", 
+             
+            "results": evaluation_results
+        }
+    except Exception as e:
+        return {"error": str(e), "detail": "An error occurred during model evaluation."}
 
 # ====================================================================
 # VI. UVICORN START COMMAND
