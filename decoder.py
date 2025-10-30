@@ -1,19 +1,19 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-
+import pickle
 from visualize import plot_metrics
 # hyperparameters
-batch_size = 64 
-block_size = 256
-max_iters = 15
-eval_interval = 3
+batch_size = 2
+block_size = 3
+max_iters = 2
+eval_interval = 1
 learning_rate = 3e-4
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-eval_iters = 10
-n_embd = 384
-n_head = 6
-n_layer = 6
+eval_iters = 1
+n_embd = 8
+n_head = 1
+n_layer = 1
 dropout = 0.2
 
 
@@ -282,9 +282,13 @@ def train_model(model, optimizer, max_epochs, eval_interval=100, device='cpu'):
         plot_metrics(train_losses, val_losses)
 
     # ---- Save model after training ----
-    torch.save(model, "decoder.pth")
+    
+    pickle.dump(model,open("model.pkl","wb"))
+    model=pickle.load(open('model.pkl','rb'))
+    print(model)
 
     print("\n Training complete! Model saved as 'decoder.pth'.")
+
     return train_losses, val_losses
 
 if __name__ == "__main__":

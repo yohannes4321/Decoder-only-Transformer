@@ -2,12 +2,9 @@ import torch
 from decoder import encode, decode, vocab_size, block_size
 from decoder import GPTLanguageModel, Block, Head, MultiHeadAttention, FeedFoward
 import os
-
+import pickle
 # Load model only once, safely relative to this file
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "decoder.pth")
-with torch.serialization.safe_globals([GPTLanguageModel]):
-    m = torch.load(MODEL_PATH, map_location='cpu', weights_only=False)
-
+m=pickle.load(open('model.pkl','rb'))
 def generate_from_prompt(prompt: str, max_new_tokens=200, temperature=0.7, top_k=50, device=None):
     if device is None:
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
