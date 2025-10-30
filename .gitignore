@@ -2,6 +2,6 @@ Data_transformation/tokenizer/outputs/
 venv/
 __pycache__/
 *.pyc
-*.pkl
-*.json
+
+
 
