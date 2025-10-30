@@ -1,4 +1,4 @@
-# --- model_app.py ---
+# --- model_app.py (Render Deployment Fix) ---
 import os
 import torch
 import torch.nn as nn
@@ -15,17 +15,17 @@ import math
 # ====================================================================
 
 # NOTE: These hyperparameters MUST match the values used when the model was trained and saved.
-# Using the values provided in your decoder.py snippet:
 batch_size = 2
 block_size = 3 
 n_embd = 8
 n_head = 1
 n_layer = 1
 dropout = 0.2
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+# CRITICAL FIX: Set the device to CPU explicitly for deployment
+device = torch.device('cpu') 
 
 # Data setup (Simulated/Placeholder for running in a single file)
-# Assumes Data folder is relative to where you run this file
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  
 DATA_DIR = os.path.join(BASE_DIR, 'Data')
 
@@ -155,7 +155,9 @@ class GPTLanguageModel(nn.Module):
                 logits = logits[:, -1, :] / temperature
                 
                 if top_k is not None:
-                    v, i = torch.topk(logits, min(top_k, logits.size(-1)))
+                    # Fix for potential empty logits/top_k issue if vocab is small
+                    k_val = min(top_k, logits.size(-1))
+                    v, i = torch.topk(logits, k_val)
                     logits[logits < v[:, [-1]]] = float('-inf')
 
                 probs = F.softmax(logits, dim=-1)
@@ -180,20 +182,14 @@ class_map = {
 # The unpickler needs to look in the right place for the custom classes
 class CustomUnpickler(pickle.Unpickler):
     def find_class(self, module, name):
-        # 1. If the class name is in our custom map (i.e., defined in this file), return it directly.
+        # This fixes the original Attribute Error issue
         if name in class_map:
             return class_map[name]
         
-        # 2. The original model was saved in the training script's '__main__'.
-        # By loading it here, the unpickler looks for it in 'model_app', 
-        # but the class definition is now defined *within* 'model_app.py'.
-        # No redirection is strictly necessary if the classes are imported/defined here, 
-        # but we keep the logic for robustness against original training environment.
+        # We also need to fix the module name if it was saved in the main script's scope.
         if module == "__main__" or module == "decoder":
-             # Since all classes are now defined directly in THIS file, 
-             # the pickler should find them in the current module's namespace.
-             # We let the parent class try to find it first, or use the map.
-             pass
+             # We rely on the class_map lookup above to provide the correct class
+             pass 
         
         return super().find_class(module, name)
 
@@ -202,14 +198,22 @@ m = None
 MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'model.pkl')
 
 try:
-    with open(MODEL_PATH, 'rb') as f:
-        unpickler = CustomUnpickler(f)
-        m = unpickler.load()
-        m.to(device)
-        print(f"Model loaded successfully from {MODEL_PATH} and moved to {device}.")
+    # --- CRITICAL FIX: Use torch.load with map_location='cpu' ---
+    # This loads the full pickled model object and correctly maps CUDA tensors to CPU.
+    m = torch.load(
+        MODEL_PATH, 
+        map_location=torch.device('cpu') # <-- **THE FIX FOR CUDA ERROR**
+    )
+    
+    # We explicitly move the model to the determined 'device' (which is 'cpu')
+    m.to(device)
+    # Ensure the model is in evaluation mode for inference
+    m.eval() 
+    print(f"Model loaded successfully from {MODEL_PATH} and moved to {device}.")
+
 except Exception as e:
     print(f"Error loading model from {MODEL_PATH}: {e}")
-    # Fallback to creating a new model instance
+    # Fallback to creating a new model instance on the determined 'device' ('cpu')
     m = GPTLanguageModel()
     m.to(device)
     print("Warning: Using a freshly initialized (untrained) GPTLanguageModel.")
@@ -225,9 +229,10 @@ def generate_from_prompt(prompt: str, max_new_tokens=200, temperature=0.7, top_k
     if m is None:
         return "Model not initialized."
     
-    m.eval()
+    # The model is already set to m.eval() in the loading block
     
     # Ensure all token IDs are valid based on the loaded vocab
+    # We use the deployment 'device' (cpu)
     prompt_ids = torch.tensor([encode(prompt)], dtype=torch.long, device=device)
     
     # Use the model's unified generate function
@@ -276,15 +281,13 @@ def generate_text_endpoint(request: GenerationRequest):
         )
         return {"input_prompt": request.prompt, "generated_text": generated_text}
     except Exception as e:
+        # Catch and report errors during generation
         return {"error": str(e), "detail": "An error occurred during text generation."}
-
-# NOTE: The training logic has been completely removed to avoid running heavy computations
-# when uvicorn loads the application.
 
 # ====================================================================
 # VI. UVICORN START COMMAND
 # ====================================================================
 
 if __name__ == "__main__":
-    port=int(os.environ.get("PORT", 8000)) # Defaulting to 8000 for standard practice
+    port=int(os.environ.get("PORT", 8000)) 
     uvicorn.run("model_app:app", host="0.0.0.0", port=port, log_level="info", reload=False)
