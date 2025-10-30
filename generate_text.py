@@ -61,4 +61,5 @@ No more talking on't; let it be done: away, away!
 
 Second Citizen:
 One word, good citizens."""
-    generate_from_prompt(prompt, max_new_tokens=200, temperature=0.7, top_k=50, device=None)
+    text=generate_from_prompt(prompt, max_new_tokens=200, temperature=0.7, top_k=50, device=None)
+    print(text)
